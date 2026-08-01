@@ -1,0 +1,1586 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>MacBook Pro — three.js</title>
+
+<style>
+  :root {
+    --ui-bg: rgba(22, 23, 27, 0.72);
+    --ui-br: rgba(255, 255, 255, 0.10);
+    --ui-tx: #e9e9ec;
+    --ui-dim: #8b8b93;
+    --ui-acc: #2f7dfa;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(120% 90% at 50% 8%, #2b2e36 0%, #14161a 45%, #08090b 100%);
+    font: 400 13px/1.45 "SF Pro Text", "SF Pro Display", -apple-system,
+      "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ui-tx);
+    -webkit-font-smoothing: antialiased;
+  }
+  #c { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  .panel {
+    position: fixed;
+    top: 18px; left: 18px;
+    width: 236px;
+    padding: 14px 15px 13px;
+    background: var(--ui-bg);
+    border: 1px solid var(--ui-br);
+    border-radius: 14px;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    user-select: none;
+  }
+  .panel h1 {
+    margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .panel .sub { margin: 0 0 12px; font-size: 11px; color: var(--ui-dim); font-variant-numeric: tabular-nums; }
+  .row { margin-bottom: 11px; }
+  .row:last-child { margin-bottom: 0; }
+  .lbl {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--ui-dim); margin-bottom: 6px;
+  }
+  .lbl b { font-weight: 500; color: var(--ui-tx); text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+
+  .seg { display: flex; gap: 3px; padding: 3px; background: rgba(255,255,255,.06); border-radius: 9px; }
+  .seg button {
+    flex: 1; appearance: none; border: 0; cursor: pointer;
+    background: transparent; color: var(--ui-tx);
+    font: inherit; font-size: 12px; padding: 5px 0; border-radius: 6px;
+    transition: background .15s ease;
+  }
+  .seg button:hover { background: rgba(255,255,255,.07); }
+  .seg button[aria-pressed="true"] { background: rgba(255,255,255,.16); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+    background: rgba(255,255,255,.16); border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.5); cursor: pointer;
+  }
+
+  .toggles { display: flex; gap: 6px; }
+  .toggles button {
+    flex: 1; appearance: none; cursor: pointer; font: inherit; font-size: 11.5px;
+    padding: 6px 0; border-radius: 8px;
+    border: 1px solid var(--ui-br); background: rgba(255,255,255,.05); color: var(--ui-tx);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .toggles button:hover { background: rgba(255,255,255,.10); }
+  .toggles button[aria-pressed="true"] { background: rgba(47,125,250,.30); border-color: rgba(47,125,250,.6); }
+
+  .specs {
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--ui-br);
+    font-size: 10.5px; color: var(--ui-dim); line-height: 1.65; font-variant-numeric: tabular-nums;
+  }
+  .specs span { color: var(--ui-tx); }
+
+  .hint {
+    position: fixed; bottom: 16px; left: 0; right: 0; text-align: center;
+    font-size: 11px; color: rgba(255,255,255,.28); pointer-events: none; user-select: none;
+  }
+  @media (max-width: 620px) { .panel { width: calc(100vw - 36px); } }
+</style>
+
+<canvas id="c"></canvas>
+
+<div class="panel">
+  <h1>MacBook Pro</h1>
+  <p class="sub" id="modelSub">14-inch · Space Black</p>
+
+  <div class="row">
+    <div class="lbl">Size</div>
+    <div class="seg" id="segSize">
+      <button data-v="14" aria-pressed="true">14&Prime;</button>
+      <button data-v="16" aria-pressed="false">16&Prime;</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lbl">Finish</div>
+    <div class="seg" id="segFinish">
+      <button data-v="black" aria-pressed="true">Space Black</button>
+      <button data-v="silver" aria-pressed="false">Silver</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="lbl">Lid angle <b id="angleVal">108°</b></div>
+    <input type="range" id="angle" min="0" max="130" step="1" value="108" />
+  </div>
+
+  <div class="row toggles">
+    <button id="btnDisplay" aria-pressed="true">Display</button>
+    <button id="btnSpin" aria-pressed="false">Rotate</button>
+    <button id="btnPose">Close</button>
+  </div>
+
+  <div class="specs" id="specs"></div>
+</div>
+
+<div class="hint">drag to orbit · scroll to zoom · right-drag to pan</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls }  from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================================
+   MacBook Pro — dimensionally accurate three.js model.
+   World units are CENTIMETRES (1 unit = 1 cm), matching Apple's published specs.
+   ========================================================================== */
+
+const SPECS = {
+  14: {
+    name: '14-inch',
+    w: 31.26, d: 22.12, h: 1.55,        // closed enclosure
+    baseH: 1.09, lidH: 0.46,            // 1.09 + 0.46 = 1.55
+    lidD: 21.40,
+    screenW: 30.24, screenH: 19.64,     // 3024 x 1964 px @ 254 ppi -> exact cm
+    chin: 1.26, topBezel: 0.50,         // 1.26 + 19.64 + 0.50 = 21.40
+    notchW: 3.20, notchH: 0.87,
+    padW: 12.90, padD: 8.10, padFront: 0.75, padGap: 0.45,
+    r: 1.05, bevel: 0.13,
+    px: '3024 × 1964', diag: '14.2″', ppi: 254, weight: '1.55 kg'
+  },
+  16: {
+    name: '16-inch',
+    w: 35.57, d: 24.81, h: 1.68,
+    baseH: 1.18, lidH: 0.50,
+    lidD: 24.05,
+    screenW: 34.56, screenH: 22.34,     // 3456 x 2234 px @ 254 ppi
+    chin: 1.30, topBezel: 0.41,
+    notchW: 3.20, notchH: 0.87,
+    padW: 16.00, padD: 9.90, padFront: 0.90, padGap: 0.55,
+    r: 1.15, bevel: 0.14,
+    px: '3456 × 2234', diag: '16.2″', ppi: 254, weight: '2.14 kg'
+  }
+};
+
+const FINISHES = {
+  black:  { label: 'Space Black', body: 0x2b2b31, rough: 0.52, pad: 0x2b2b32, edge: 0x3a3a43, etch: '#5c5c60' },
+  silver: { label: 'Silver',      body: 0xbcbec5, rough: 0.34, pad: 0xb6b8bf, edge: 0xdcdee3, etch: '#8b8d92' }
+};
+
+// Magic Keyboard metrics (cm) — 2021+ MacBook Pro: 6 FULL-height rows, no Touch Bar
+const KU    = 1.90;   // horizontal key pitch
+const GAP   = 0.28;   // gap between keycaps
+const ROW_H = 1.90;   // vertical pitch, every row
+const FN_H  = 1.90;   // the function row is full height on the 14"/16"
+const CAP_H = 0.130;  // keycap height above the well floor
+const POCKET = 0.10;  // depth of the milled keyboard / trackpad pockets
+
+const LEGEND = '#e4e4e7';
+
+/* ------------------------------------------------------------------ shapes */
+
+function roundedRect(w, d, r) {
+  r = Math.min(r, w / 2, d / 2);
+  const x = -w / 2, y = -d / 2, s = new THREE.Shape();
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);
+  s.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x + w, y + d - r);
+  s.absarc(x + w - r, y + d - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x + r, y + d);
+  s.absarc(x + r, y + d - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x, y + r);
+  s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+
+/** Same outline as roundedRect but as a Path, for use as an ExtrudeGeometry hole. */
+function roundedPath(w, d, r, cx = 0, cy = 0) {
+  r = Math.min(r, w / 2, d / 2);
+  const x = cx - w / 2, y = cy - d / 2, p = new THREE.Path();
+  p.moveTo(x + r, y);
+  p.lineTo(x + w - r, y);
+  p.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  p.lineTo(x + w, y + d - r);
+  p.absarc(x + w - r, y + d - r, r, 0, Math.PI / 2, false);
+  p.lineTo(x + r, y + d);
+  p.absarc(x + r, y + d - r, r, Math.PI / 2, Math.PI, false);
+  p.lineTo(x, y + r);
+  p.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+  p.closePath();
+  return p;
+}
+
+/** Solid slab: rounded in plan view, bevelled on the top/bottom edges.
+ *  This is exactly the unibody profile — big plan radius, tight edge break. */
+function slabGeo(w, d, h, r, bevel = 0.1, bSeg = 4, cSeg = 30) {
+  const depth = Math.max(0.002, h - bevel * 2);
+  const g = new THREE.ExtrudeGeometry(roundedRect(w, d, r), {
+    depth, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel,
+    bevelSegments: bSeg, curveSegments: cSeg, steps: 1
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, -depth / 2, 0);
+  return g;
+}
+
+/** A rounded-rect panel subdivided into concentric rings and bowed into a very
+ *  shallow dome. The bottom case is not a flat plate — it swells slightly
+ *  toward the middle, and that shading gradient is what sells it. The rim stays
+ *  at y = 0 so the panel sits flush inside the bottom cap with no step. */
+function domedPanel(w, d, r, rise, rings = 16, seg = 128) {
+  const outline = roundedRect(w, d, r).getSpacedPoints(seg);
+  const n = seg, pos = [0, rise, 0], idx = [];
+  for (let ri = 1; ri <= rings; ri++) {
+    const t = ri / rings, y = rise * (1 - t * t);
+    for (let i = 0; i < n; i++) pos.push(outline[i].x * t, y, -outline[i].y * t);
+  }
+  for (let i = 0; i < n; i++) idx.push(0, 1 + ((i + 1) % n), 1 + i);
+  for (let ri = 1; ri < rings; ri++) {
+    const o0 = 1 + (ri - 1) * n, o1 = 1 + ri * n;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      idx.push(o0 + i, o0 + j, o1 + i, o0 + j, o1 + j, o1 + i);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+const flatUp   = (w, d, r, s = 26) => { const g = new THREE.ShapeGeometry(roundedRect(w, d, r), s); g.rotateX(-Math.PI / 2); return g; };
+const flatDown = (w, d, r, s = 26) => { const g = new THREE.ShapeGeometry(roundedRect(w, d, r), s); g.rotateX( Math.PI / 2); return g; };
+const flatX    = (w, d, r, sign) => { const g = new THREE.ShapeGeometry(roundedRect(w, d, r), 16); g.rotateY(sign * Math.PI / 2); return g; };
+const flatZ    = (w, d, r, sign) => { const g = new THREE.ShapeGeometry(roundedRect(w, d, r), 16); if (sign < 0) g.rotateY(Math.PI); return g; };
+
+// textured planes: +v of the texture points to +Z (lid face) / -Z (deck face)
+const planeLid  = (w, h) => { const g = new THREE.PlaneGeometry(w, h); g.rotateX( Math.PI / 2); return g; };
+const planeDeck = (w, h) => { const g = new THREE.PlaneGeometry(w, h); g.rotateX(-Math.PI / 2); return g; };
+const planeBack = (w, h) => { const g = new THREE.PlaneGeometry(w, h); g.rotateX(-Math.PI / 2); g.rotateY(Math.PI); return g; };
+
+/* ---------------------------------------------------------------- canvas 2d */
+
+const ctx2d = (wpx, hpx) => {
+  const c = document.createElement('canvas');
+  c.width = Math.max(2, Math.round(wpx));
+  c.height = Math.max(2, Math.round(hpx));
+  return c.getContext('2d');
+};
+
+function texFrom(canvas, { srgb = true, aniso = 8 } = {}) {
+  const t = new THREE.CanvasTexture(canvas);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = aniso;
+  t.needsUpdate = true;
+  return t;
+}
+
+function rr(x, cx, cy, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  x.beginPath();
+  if (x.roundRect) { x.roundRect(cx, cy, w, h, r); return; }
+  x.moveTo(cx + r, cy);
+  x.arcTo(cx + w, cy, cx + w, cy + h, r);
+  x.arcTo(cx + w, cy + h, cx, cy + h, r);
+  x.arcTo(cx, cy + h, cx, cy, r);
+  x.arcTo(cx, cy, cx + w, cy, r);
+  x.closePath();
+}
+
+// squircle-ish app icon shape
+function squircle(x, cx, cy, s, k = 0.30) { rr(x, cx, cy, s, s, s * k); }
+
+const FONT = (px, w = 500) =>
+  `${w} ${px}px "SF Pro Display","SF Pro Text",-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif`;
+
+// Apple logo outline (814 × 1000 design box)
+const APPLE_D = 'M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z';
+
+function drawApple(x, cx, cy, h, fill) {
+  const s = h / 1000;
+  x.save();
+  x.translate(cx - (814 * s) / 2, cy - h / 2);
+  x.scale(s, s);
+  x.fillStyle = fill;
+  x.fill(new Path2D(APPLE_D));
+  x.restore();
+}
+
+/* ------------------------------------------------------------ studio env */
+
+/** Equirectangular studio: dark zenith and dark floor with bright softboxes at
+ *  ~45°. three's RoomEnvironment has a very hot ceiling panel, which blows out
+ *  every up-facing surface — a Space Black lid renders white under it. Keeping
+ *  the light off the zenith is what lets flat top faces stay dark while the
+ *  chamfers and side walls still catch a hard highlight. */
+function makeStudioEnv() {
+  const W = 1024, H = 512, x = ctx2d(W, H);
+
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0.00, '#1b1e24');   // zenith — deliberately dim
+  g.addColorStop(0.17, '#2b2f37');
+  g.addColorStop(0.31, '#59606d');   // the 45° band the product sits in
+  g.addColorStop(0.46, '#3b404a');
+  g.addColorStop(0.50, '#23262c');   // horizon
+  g.addColorStop(0.58, '#101115');
+  g.addColorStop(1.00, '#08080a');   // floor
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+
+  const box = (cx, cy, w, h, v, blur) => {
+    x.save();
+    x.filter = `blur(${blur}px)`;
+    x.fillStyle = `rgb(${v},${v},${v})`;
+    rr(x, cx - w / 2, cy - h / 2, w, h, h * 0.35);
+    x.fill();
+    x.restore();
+  };
+  box(W * 0.20, H * 0.27, W * 0.22, H * 0.17, 255, 22);   // key softbox
+  box(W * 0.66, H * 0.30, W * 0.17, H * 0.13, 205, 20);   // fill softbox
+  box(W * 0.92, H * 0.36, W * 0.10, H * 0.09, 165, 16);   // rim
+  box(W * 0.45, H * 0.505, W * 0.60, H * 0.035, 150, 10); // horizon kicker
+
+  const t = texFrom(x.canvas);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  return t;
+}
+
+/* =========================================================== display texture */
+
+function makeScreenTexture() {
+  const W = 2016, H = 1309;          // 3024 × 1964 at 2/3 scale — same 1.5397 ratio
+  const K = W / 1512;                // UI scale factor relative to the design size
+  const x = ctx2d(W, H);
+
+  /* wallpaper — the macOS layered-ribbon desktop -------------------------- */
+  const bg = x.createLinearGradient(0, 0, W * 0.25, H);
+  bg.addColorStop(0.00, '#070a18');
+  bg.addColorStop(0.55, '#0b0e22');
+  bg.addColorStop(1.00, '#04050c');
+  x.fillStyle = bg; x.fillRect(0, 0, W, H);
+
+  // Each ribbon is a broad band whose top edge is a slow sine and whose bottom
+  // edge is the same curve pushed down, filled with a gradient along its run
+  // and blurred hard. Stacked warm-through-cool they give the flowing layers.
+  // Painted back-to-front with source-over, not additively: overlapping bright
+  // bands sum to a pastel wash, whereas stacking them keeps each colour zone
+  // distinct and lets the blur feather only the boundaries.
+  const ribbon = (yTop, thick, amp, phase, a, b, alpha, blur) => {
+    x.save();
+    x.filter = `blur(${blur * K}px)`;
+    x.globalAlpha = alpha;
+    const g = x.createLinearGradient(0, 0, W, H * 0.4);
+    g.addColorStop(0, a); g.addColorStop(1, b);
+    x.fillStyle = g;
+    const N = 28, x0 = -W * 0.15, span = W * 1.30;
+    const curve = t => yTop * H + Math.sin(phase + t * 2.7) * amp * H;
+    x.beginPath();
+    for (let i = 0; i <= N; i++) { const t = i / N; x.lineTo(x0 + t * span, curve(t)); }
+    for (let i = N; i >= 0; i--) { const t = i / N; x.lineTo(x0 + t * span, curve(t) + thick * H); }
+    x.closePath();
+    x.fill();
+    x.restore();
+  };
+
+  ribbon(-0.22, 0.44, 0.070, 0.6, '#151a54', '#2e2585', 1.00, 70);
+  ribbon( 0.12, 0.26, 0.062, 1.5, '#4a2596', '#7c37ac', 0.98, 70);
+  ribbon( 0.30, 0.24, 0.058, 2.4, '#a63a7e', '#d2557f', 0.96, 72);
+  ribbon( 0.46, 0.22, 0.055, 3.2, '#d4652f', '#ef9a52', 0.94, 74);
+  ribbon( 0.60, 0.22, 0.052, 4.0, '#1d9179', '#43bb9a', 0.94, 76);
+  ribbon( 0.76, 0.50, 0.050, 4.9, '#12305f', '#1d4f92', 1.00, 80);
+
+  // vignette
+  const vg = x.createRadialGradient(W / 2, H / 2, H * 0.30, W / 2, H / 2, H * 1.05);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.34)');
+  x.fillStyle = vg; x.fillRect(0, 0, W, H);
+
+  // Dither. Wide soft gradients quantise hard at 8 bits and show as banding
+  // rings on the panel — a ±1 LSB noise tile breaks them up completely.
+  const nz = ctx2d(128, 128);
+  const nd = nz.createImageData(128, 128);
+  for (let i = 0; i < nd.data.length; i += 4) {
+    const v = 116 + Math.random() * 24;
+    nd.data[i] = nd.data[i + 1] = nd.data[i + 2] = v;
+    nd.data[i + 3] = 255;
+  }
+  nz.putImageData(nd, 0, 0);
+  x.save();
+  x.globalCompositeOperation = 'overlay';
+  x.globalAlpha = 0.07;
+  x.fillStyle = x.createPattern(nz.canvas, 'repeat');
+  x.fillRect(0, 0, W, H);
+  x.restore();
+
+  /* menu bar ---------------------------------------------------------- */
+  const MB = Math.round(H * 0.0443);          // exactly as tall as the notch
+  x.fillStyle = 'rgba(8,8,14,0.42)'; x.fillRect(0, 0, W, MB);
+  x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(0, MB - K, W, K);
+
+  const notchHalf = (3.20 / 30.24) * W / 2;
+  drawApple(x, 22 * K, MB / 2 - K, MB * 0.46, 'rgba(255,255,255,0.92)');
+
+  x.textBaseline = 'middle';
+  x.fillStyle = 'rgba(255,255,255,0.94)';
+  let mx = 44 * K;
+  const menus = [['Finder', 600], ['File', 400], ['Edit', 400], ['View', 400], ['Go', 400], ['Window', 400], ['Help', 400]];
+  for (const [t, wt] of menus) {
+    x.font = FONT(MB * 0.36, wt);
+    if (mx + x.measureText(t).width > W / 2 - notchHalf - 12 * K) break;
+    x.fillText(t, mx, MB / 2);
+    mx += x.measureText(t).width + 19 * K;
+  }
+
+  // right cluster
+  const d = new Date();
+  const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const clock = `${DAY[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}  9:41 AM`;
+  x.font = FONT(MB * 0.36, 400);
+  x.textAlign = 'right';
+  x.fillText(clock, W - 16 * K, MB / 2);
+  let rx = W - (20 + 12) * K - x.measureText(clock).width;
+  x.textAlign = 'left';
+  const ic = 'rgba(255,255,255,0.90)';
+
+  // battery
+  rx -= 26 * K;
+  x.strokeStyle = ic; x.lineWidth = 1.4 * K;
+  rr(x, rx, MB / 2 - 6 * K, 22 * K, 12 * K, 3.5 * K); x.stroke();
+  x.fillStyle = ic; rr(x, rx + 2 * K, MB / 2 - 4 * K, 15 * K, 8 * K, 2 * K); x.fill();
+  x.beginPath();
+  x.moveTo(rx + 23.5 * K, MB / 2 - 2.5 * K); x.lineTo(rx + 23.5 * K, MB / 2 + 2.5 * K);
+  x.lineWidth = 2.4 * K; x.stroke();
+
+  // wifi
+  rx -= 26 * K;
+  x.strokeStyle = ic; x.lineWidth = 2 * K; x.lineCap = 'round';
+  for (let i = 1; i <= 3; i++) {
+    x.beginPath(); x.arc(rx + 9 * K, MB / 2 + 6 * K, i * 3.6 * K, Math.PI * 1.25, Math.PI * 1.75); x.stroke();
+  }
+  x.fillStyle = ic; x.beginPath(); x.arc(rx + 9 * K, MB / 2 + 5 * K, 1.7 * K, 0, 7); x.fill();
+
+  // control centre
+  rx -= 24 * K;
+  x.strokeStyle = ic; x.lineWidth = 1.6 * K;
+  for (let i = 0; i < 2; i++) {
+    const yy = MB / 2 - 4 * K + i * 8 * K;
+    x.beginPath(); x.moveTo(rx, yy); x.lineTo(rx + 15 * K, yy); x.stroke();
+    x.fillStyle = ic; x.beginPath(); x.arc(rx + (i ? 5 : 10) * K, yy, 2.6 * K, 0, 7); x.fill();
+  }
+
+  /* dock -------------------------------------------------------------- */
+  const ICONS = [
+    'finder', 'launchpad', 'safari', 'messages', 'mail', 'maps', 'photos',
+    'facetime', 'calendar', 'notes', 'music', 'terminal', 'settings', 'sep', 'trash'
+  ];
+  const S = 58 * K, PAD = 9 * K, GP = 8 * K;
+  const dw = ICONS.length * S + (ICONS.length - 1) * GP + PAD * 2;
+  const dh = S + PAD * 2;
+  const dx = (W - dw) / 2, dy = H - dh - 8 * K;
+
+  x.save();
+  rr(x, dx, dy, dw, dh, 22 * K);
+  x.fillStyle = 'rgba(190,195,215,0.17)'; x.fill();
+  x.strokeStyle = 'rgba(255,255,255,0.16)'; x.lineWidth = K; x.stroke();
+  x.restore();
+
+  // icons are authored in a 58 px design space and scaled into place
+  ICONS.forEach((id, i) => {
+    x.save();
+    x.translate(dx + PAD + i * (S + GP), dy + PAD);
+    x.scale(S / 58, S / 58);
+    drawDockIcon(x, 0, 0, 58, id);
+    x.restore();
+  });
+
+  /* rounded display corners — the 14"/16" panel is radiused, not square ------ */
+  const CR = 28 * K;                              // ≈ 5.6 mm of real panel
+  x.beginPath();
+  x.rect(0, 0, W, H);                             // outer subpath
+  x.moveTo(CR, 0);                                // inner rounded subpath
+  x.arcTo(W, 0, W, H, CR);
+  x.arcTo(W, H, 0, H, CR);
+  x.arcTo(0, H, 0, 0, CR);
+  x.arcTo(0, 0, W, 0, CR);
+  x.closePath();
+  x.fillStyle = '#000';
+  x.fill('evenodd');
+
+  return texFrom(x.canvas, { aniso: 16 });
+}
+
+function drawDockIcon(x, ix, iy, S, id) {
+  const cx = ix + S / 2, cy = iy + S / 2;
+  const grad = (a, b) => { const g = x.createLinearGradient(ix, iy, ix, iy + S); g.addColorStop(0, a); g.addColorStop(1, b); return g; };
+  const plate = (a, b) => { squircle(x, ix, iy, S); x.fillStyle = grad(a, b); x.fill(); };
+  x.save();
+  x.lineCap = 'round'; x.lineJoin = 'round';
+
+  switch (id) {
+    case 'sep':
+      x.fillStyle = 'rgba(255,255,255,0.22)';
+      x.fillRect(cx - 0.5, iy + 4, 1, S - 8);
+      break;
+
+    case 'finder': {
+      plate('#4fb3ff', '#1f6ff2');
+      x.save(); squircle(x, ix, iy, S); x.clip();
+      x.fillStyle = 'rgba(255,255,255,0.92)'; x.fillRect(cx, iy, S / 2, S);
+      x.restore();
+      x.strokeStyle = '#1a2a45'; x.lineWidth = 2.2;
+      x.beginPath(); x.moveTo(cx - 11, cy - 9); x.lineTo(cx - 11, cy - 3); x.stroke();
+      x.beginPath(); x.moveTo(cx + 11, cy - 9); x.lineTo(cx + 11, cy - 3); x.stroke();
+      x.beginPath(); x.arc(cx, cy + 2, 11, 0.24 * Math.PI, 0.76 * Math.PI); x.stroke();
+      break;
+    }
+    case 'launchpad': {
+      plate('#8b8b96', '#3d3d47');
+      x.fillStyle = 'rgba(255,255,255,0.9)';
+      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) {
+        rr(x, cx - 17 + b * 13, cy - 17 + a * 13, 10, 10, 2.6); x.fill();
+      }
+      break;
+    }
+    case 'safari': {
+      plate('#eaf5ff', '#b8dcff');
+      x.beginPath(); x.arc(cx, cy, S * 0.36, 0, 7);
+      x.fillStyle = '#f7fbff'; x.fill();
+      x.strokeStyle = '#7fb6e8'; x.lineWidth = 2; x.stroke();
+      x.beginPath(); x.moveTo(cx + 12, cy - 12); x.lineTo(cx - 2, cy - 2); x.lineTo(cx + 2, cy + 2); x.closePath();
+      x.fillStyle = '#ff4a4a'; x.fill();
+      x.beginPath(); x.moveTo(cx - 12, cy + 12); x.lineTo(cx + 2, cy + 2); x.lineTo(cx - 2, cy - 2); x.closePath();
+      x.fillStyle = '#e9e9ee'; x.fill();
+      break;
+    }
+    case 'messages': {
+      plate('#6df58a', '#12b93a');
+      x.fillStyle = '#fff';
+      x.beginPath();
+      x.ellipse(cx, cy - 2, 17, 13, 0, 0, 7); x.fill();
+      x.beginPath(); x.moveTo(cx - 12, cy + 7); x.lineTo(cx - 6, cy + 16); x.lineTo(cx - 2, cy + 8); x.closePath(); x.fill();
+      break;
+    }
+    case 'mail': {
+      plate('#79c8ff', '#1a7ef2');
+      x.fillStyle = '#fff'; rr(x, cx - 19, cy - 12, 38, 25, 4); x.fill();
+      x.strokeStyle = '#4f9de6'; x.lineWidth = 2.2;
+      x.beginPath(); x.moveTo(cx - 17, cy - 10); x.lineTo(cx, cy + 3); x.lineTo(cx + 17, cy - 10); x.stroke();
+      break;
+    }
+    case 'maps': {
+      plate('#a4e79a', '#3fa8d8');
+      x.strokeStyle = 'rgba(255,255,255,0.95)'; x.lineWidth = 4;
+      x.beginPath(); x.moveTo(ix, cy + 12); x.quadraticCurveTo(cx, cy - 4, ix + S, cy - 14); x.stroke();
+      x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = 2.5;
+      x.beginPath(); x.moveTo(cx - 6, iy + S); x.quadraticCurveTo(cx - 2, cy, cx + 12, iy); x.stroke();
+      break;
+    }
+    case 'photos': {
+      plate('#ffffff', '#eef0f4');
+      const cols = ['#f8c03a', '#f0663f', '#e34a8c', '#9a4ad6', '#3f7ee0', '#31b7d8', '#4fc16a', '#a9d13c'];
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+        x.save(); x.globalAlpha = 0.9; x.translate(cx, cy); x.rotate(a);
+        x.fillStyle = cols[i];
+        x.beginPath(); x.ellipse(0, -10, 5.5, 11, 0, 0, 7); x.fill();
+        x.restore();
+      }
+      break;
+    }
+    case 'facetime': {
+      plate('#6df58a', '#0fa63a');
+      x.fillStyle = '#fff'; rr(x, cx - 17, cy - 11, 24, 22, 5); x.fill();
+      x.beginPath(); x.moveTo(cx + 9, cy - 1); x.lineTo(cx + 18, cy - 9); x.lineTo(cx + 18, cy + 8); x.closePath(); x.fill();
+      break;
+    }
+    case 'calendar': {
+      plate('#ffffff', '#eceef2');
+      x.fillStyle = '#f5333f'; x.save(); squircle(x, ix, iy, S); x.clip();
+      x.fillRect(ix, iy, S, S * 0.30); x.restore();
+      x.fillStyle = '#fff'; x.font = FONT(S * 0.19, 700); x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText('JUL', cx, iy + S * 0.155);
+      x.fillStyle = '#1c1c1e'; x.font = FONT(S * 0.46, 300);
+      x.fillText('29', cx, iy + S * 0.66);
+      break;
+    }
+    case 'notes': {
+      squircle(x, ix, iy, S); x.fillStyle = grad('#fff0a8', '#f6c92f'); x.fill();
+      x.fillStyle = 'rgba(255,255,255,0.95)'; x.fillRect(ix, iy + S * 0.22, S, S * 0.10);
+      x.strokeStyle = 'rgba(120,90,10,0.45)'; x.lineWidth = 2;
+      for (let i = 0; i < 3; i++) { x.beginPath(); x.moveTo(ix + 10, cy + i * 8); x.lineTo(ix + S - 10, cy + i * 8); x.stroke(); }
+      break;
+    }
+    case 'music': {
+      plate('#ff7d8c', '#ef1f43');
+      x.fillStyle = '#fff';
+      x.beginPath(); x.ellipse(cx - 8, cy + 9, 7, 5.5, -0.3, 0, 7); x.fill();
+      x.beginPath(); x.ellipse(cx + 10, cy + 5, 7, 5.5, -0.3, 0, 7); x.fill();
+      x.fillRect(cx - 3, cy - 14, 3, 24);
+      x.fillRect(cx + 15, cy - 18, 3, 24);
+      x.beginPath(); x.moveTo(cx - 3, cy - 14); x.lineTo(cx + 18, cy - 18); x.lineTo(cx + 18, cy - 11); x.lineTo(cx - 3, cy - 7); x.closePath(); x.fill();
+      break;
+    }
+    case 'terminal': {
+      plate('#4a4a52', '#121216');
+      x.fillStyle = '#e8e8ec'; x.font = FONT(S * 0.34, 600);
+      x.textAlign = 'left'; x.textBaseline = 'middle';
+      x.fillText('>_', ix + S * 0.20, cy);
+      break;
+    }
+    case 'settings': {
+      plate('#a2a2ab', '#54545e');
+      x.strokeStyle = 'rgba(255,255,255,0.95)'; x.lineWidth = 6;
+      x.beginPath(); x.arc(cx, cy, 12, 0, 7); x.stroke();
+      x.lineWidth = 5;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        x.beginPath();
+        x.moveTo(cx + Math.cos(a) * 15, cy + Math.sin(a) * 15);
+        x.lineTo(cx + Math.cos(a) * 21, cy + Math.sin(a) * 21);
+        x.stroke();
+      }
+      break;
+    }
+    case 'trash': {
+      x.strokeStyle = 'rgba(255,255,255,0.75)'; x.lineWidth = 2.4;
+      x.beginPath(); x.moveTo(cx - 13, cy - 12); x.lineTo(cx + 13, cy - 12); x.stroke();
+      x.beginPath();
+      x.moveTo(cx - 10, cy - 8); x.lineTo(cx - 8, cy + 16);
+      x.lineTo(cx + 8, cy + 16); x.lineTo(cx + 10, cy - 8);
+      x.stroke();
+      x.beginPath(); x.moveTo(cx - 4, cy - 12); x.lineTo(cx - 4, cy - 17); x.lineTo(cx + 4, cy - 17); x.lineTo(cx + 4, cy - 12); x.stroke();
+      break;
+    }
+  }
+  x.restore();
+}
+
+/* ------------------------------------------------------- etched wordmark */
+
+function makeWordmark(text, wCm, hCm, color) {
+  const P = 260;
+  const x = ctx2d(wCm * P, hCm * P);
+  const W = x.canvas.width, H = x.canvas.height;
+  const ls = H * 0.075;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = FONT(H * 0.46, 500);
+  x.fillStyle = color;
+  // Canvas letterSpacing also adds a trailing gap after the last glyph, so
+  // centred text lands half a space to the left — push it back by ls/2.
+  if ('letterSpacing' in x) x.letterSpacing = `${ls}px`;
+  x.fillText(text, W / 2 + ls / 2, H * 0.50);
+  return texFrom(x.canvas);
+}
+
+function makeAppleLogoTexture(px = 512) {
+  const x = ctx2d(px, px);
+  drawApple(x, px / 2, px / 2, px * 0.94, '#ffffff');
+  return texFrom(x.canvas);
+}
+
+/* ----------------------------------------------------- speaker grille map */
+
+/** Micro-perforated speaker grille: ~0.7 mm holes on a 1.4 mm staggered pitch. */
+function makeGrilleAlpha(wCm, dCm) {
+  const P = 230, pitch = 0.101 * P, rad = 0.028 * P;
+  const x = ctx2d(wCm * P, dCm * P);
+  const W = x.canvas.width, H = x.canvas.height;
+  x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+  // rounded outline of the perforated field, baked in (the mesh is a plain plane
+  // so that its UVs are normalised)
+  x.save();
+  rr(x, 0.5, 0.5, W - 1, H - 1, 0.26 * P);
+  x.clip();
+  x.fillStyle = '#fff';
+  const rowP = pitch * 0.866;                       // hex packing
+  const cols = Math.floor((W - rad * 2) / pitch);
+  const rows = Math.floor((H - rad * 2) / rowP);
+  const ox = (W - cols * pitch) / 2 + pitch / 2;
+  const oy = (H - rows * rowP) / 2 + rowP / 2;
+  for (let r = 0; r <= rows; r++) {
+    const py = oy + r * rowP;
+    if (py < rad || py > H - rad) continue;
+    for (let c = 0; c <= cols; c++) {
+      const px = ox + c * pitch + (r % 2) * pitch * 0.5;
+      if (px < rad || px > W - rad) continue;
+      x.beginPath(); x.arc(px, py, rad, 0, Math.PI * 2); x.fill();
+    }
+  }
+  x.restore();
+  return texFrom(x.canvas, { srgb: false, aniso: 16 });
+}
+
+/** The 1080p FaceTime camera sitting in the notch: housing shadow, barrel with
+ *  a faint machined ring, a blue-black iris, the pupil, and one off-centre
+ *  specular. A flat dot reads as a smudge — the concentric structure is what
+ *  makes it look like a lens under glass. */
+let camTex = null;
+function makeCameraTexture() {
+  if (camTex) return camTex;
+  const S = 256, x = ctx2d(S, S), c = S / 2;
+  const disc = (r, fill) => { x.fillStyle = fill; x.beginPath(); x.arc(c, c, r, 0, 7); x.fill(); };
+
+  let g = x.createRadialGradient(c, c, S * 0.22, c, c, S * 0.50);
+  g.addColorStop(0, 'rgba(20,22,28,0.95)'); g.addColorStop(1, 'rgba(20,22,28,0)');
+  disc(S * 0.50, g);                                   // housing falloff
+
+  disc(S * 0.34, '#0b0d12');                           // barrel
+  x.strokeStyle = 'rgba(125,138,160,0.28)';
+  x.lineWidth = S * 0.013;
+  x.beginPath(); x.arc(c, c, S * 0.332, 0, 7); x.stroke();
+
+  g = x.createRadialGradient(c - S * 0.07, c - S * 0.07, S * 0.02, c, c, S * 0.27);
+  g.addColorStop(0.00, '#22314a');
+  g.addColorStop(0.55, '#0a1119');
+  g.addColorStop(1.00, '#05070b');
+  disc(S * 0.27, g);                                   // iris
+
+  disc(S * 0.125, '#020305');                          // pupil
+
+  const hx = c - S * 0.10, hy = c - S * 0.115;
+  g = x.createRadialGradient(hx, hy, 0, hx, hy, S * 0.10);
+  g.addColorStop(0, 'rgba(195,220,255,0.55)'); g.addColorStop(1, 'rgba(195,220,255,0)');
+  x.fillStyle = g; x.beginPath(); x.arc(hx, hy, S * 0.10, 0, 7); x.fill();
+
+  camTex = texFrom(x.canvas, { aniso: 16 });
+  return camTex;
+}
+
+/* ============================================================== fn-row icons */
+
+function drawFnIcon(x, id, cx, cy, s) {
+  x.save();
+  x.translate(cx, cy);
+  x.strokeStyle = LEGEND; x.fillStyle = LEGEND;
+  x.lineWidth = Math.max(1.1, s * 0.085);
+  x.lineCap = 'round'; x.lineJoin = 'round';
+
+  const speaker = () => {
+    x.beginPath();
+    x.moveTo(-s * 0.42, -s * 0.13); x.lineTo(-s * 0.22, -s * 0.13);
+    x.lineTo(-s * 0.02, -s * 0.34); x.lineTo(-s * 0.02, s * 0.34);
+    x.lineTo(-s * 0.22, s * 0.13); x.lineTo(-s * 0.42, s * 0.13);
+    x.closePath(); x.fill();
+  };
+
+  switch (id) {
+    case 'bright-lo':
+    case 'bright-hi': {
+      const hi = id === 'bright-hi';
+      x.beginPath(); x.arc(0, 0, s * (hi ? 0.21 : 0.16), 0, 7); x.fill();
+      const a0 = hi ? 0.31 : 0.26, len = hi ? 0.20 : 0.13;
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4;
+        x.beginPath();
+        x.moveTo(Math.cos(a) * s * a0, Math.sin(a) * s * a0);
+        x.lineTo(Math.cos(a) * s * (a0 + len), Math.sin(a) * s * (a0 + len));
+        x.stroke();
+      }
+      break;
+    }
+    case 'mission': {
+      x.lineWidth = s * 0.075;
+      rr(x, -s * 0.44, -s * 0.32, s * 0.88, s * 0.64, s * 0.10); x.stroke();
+      rr(x, -s * 0.30, -s * 0.18, s * 0.24, s * 0.16, s * 0.04); x.fill();
+      rr(x,  s * 0.06, -s * 0.18, s * 0.24, s * 0.16, s * 0.04); x.fill();
+      rr(x, -s * 0.12,  s * 0.04, s * 0.24, s * 0.16, s * 0.04); x.fill();
+      break;
+    }
+    case 'search': {
+      x.lineWidth = s * 0.10;
+      x.beginPath(); x.arc(-s * 0.06, -s * 0.06, s * 0.28, 0, 7); x.stroke();
+      x.beginPath(); x.moveTo(s * 0.15, s * 0.15); x.lineTo(s * 0.40, s * 0.40); x.stroke();
+      break;
+    }
+    case 'mic': {
+      rr(x, -s * 0.13, -s * 0.44, s * 0.26, s * 0.50, s * 0.13); x.fill();
+      x.lineWidth = s * 0.085;
+      x.beginPath(); x.arc(0, -s * 0.06, s * 0.28, 0, Math.PI); x.stroke();
+      x.beginPath(); x.moveTo(0, s * 0.22); x.lineTo(0, s * 0.42); x.stroke();
+      break;
+    }
+    case 'moon': {
+      const R = s * 0.42;
+      x.beginPath();
+      x.arc(0, 0, R, Math.PI * 0.32, Math.PI * 1.68, false);
+      x.quadraticCurveTo(R * 0.30, 0, Math.cos(Math.PI * 0.32) * R, Math.sin(Math.PI * 0.32) * R);
+      x.closePath(); x.fill();
+      break;
+    }
+    case 'prev':
+    case 'next': {
+      const d = id === 'next' ? 1 : -1;
+      for (let i = 0; i < 2; i++) {
+        const o = (-0.42 + i * 0.42) * s * d;
+        x.beginPath();
+        x.moveTo(o, -s * 0.32); x.lineTo(o + 0.40 * s * d, 0); x.lineTo(o, s * 0.32);
+        x.closePath(); x.fill();
+      }
+      break;
+    }
+    case 'play': {
+      x.beginPath();
+      x.moveTo(-s * 0.44, -s * 0.32); x.lineTo(-s * 0.06, 0); x.lineTo(-s * 0.44, s * 0.32);
+      x.closePath(); x.fill();
+      rr(x, s * 0.10, -s * 0.32, s * 0.12, s * 0.64, s * 0.05); x.fill();
+      rr(x, s * 0.32, -s * 0.32, s * 0.12, s * 0.64, s * 0.05); x.fill();
+      break;
+    }
+    case 'mute': {
+      speaker();
+      x.lineWidth = s * 0.09;
+      x.beginPath(); x.moveTo(s * 0.14, -s * 0.18); x.lineTo(s * 0.44, s * 0.18); x.stroke();
+      x.beginPath(); x.moveTo(s * 0.44, -s * 0.18); x.lineTo(s * 0.14, s * 0.18); x.stroke();
+      break;
+    }
+    case 'vol-':
+    case 'vol+': {
+      speaker();
+      x.lineWidth = s * 0.085;
+      const n = id === 'vol+' ? 3 : 1;
+      for (let i = 1; i <= n; i++) {
+        x.beginPath();
+        x.arc(-s * 0.02, 0, s * (0.10 + i * 0.13), -Math.PI * 0.36, Math.PI * 0.36);
+        x.stroke();
+      }
+      break;
+    }
+    case 'touchid': {
+      x.lineWidth = s * 0.085;
+      rr(x, -s * 0.40, -s * 0.40, s * 0.80, s * 0.80, s * 0.24); x.stroke();
+      x.lineWidth = s * 0.075;
+      for (let i = 1; i <= 3; i++) {
+        x.beginPath(); x.arc(0, s * 0.10, s * i * 0.11, Math.PI * 1.12, Math.PI * 1.88); x.stroke();
+      }
+      break;
+    }
+    case 'globe': {
+      x.lineWidth = s * 0.075;
+      x.beginPath(); x.arc(0, 0, s * 0.38, 0, 7); x.stroke();
+      x.beginPath(); x.ellipse(0, 0, s * 0.17, s * 0.38, 0, 0, 7); x.stroke();
+      x.beginPath(); x.moveTo(-s * 0.36, -s * 0.13); x.lineTo(s * 0.36, -s * 0.13); x.stroke();
+      x.beginPath(); x.moveTo(-s * 0.36, s * 0.13); x.lineTo(s * 0.36, s * 0.13); x.stroke();
+      break;
+    }
+  }
+  x.restore();
+}
+
+/* ================================================================ keyboard */
+
+const K  = (label, u = 1)                   => ({ t: 'letter', label, u });
+const D  = (top, bot, u = 1)                => ({ t: 'dual', top, bot, u });
+const W_ = (word, u = 1, al = 'c')          => ({ t: 'word', word, u, al });
+const M  = (sym, word, u, al, icon = null)  => ({ t: 'mod', sym, word, u, al, icon });
+const G  = (glyph, u = 1)                   => ({ t: 'glyph', glyph, u });
+const F  = (icon, fn, u = 0.975)            => ({ t: 'fn', icon, fn, u });
+
+const ROWS = [
+  { h: FN_H, keys: [
+    W_('esc', 1.45, 'l'),
+    F('bright-lo', 'F1'), F('bright-hi', 'F2'), F('mission', 'F3'), F('search', 'F4'),
+    F('mic', 'F5'), F('moon', 'F6'), F('prev', 'F7'), F('play', 'F8'), F('next', 'F9'),
+    F('mute', 'F10'), F('vol-', 'F11'), F('vol+', 'F12'),
+    { t: 'touchid', u: 1.35 }
+  ]},
+  { h: ROW_H, keys: [
+    D('~', '`'), D('!', '1'), D('@', '2'), D('#', '3'), D('$', '4'), D('%', '5'),
+    D('^', '6'), D('&', '7'), D('*', '8'), D('(', '9'), D(')', '0'), D('_', '-'), D('+', '='),
+    W_('delete', 1.5, 'r')
+  ]},
+  { h: ROW_H, keys: [
+    M('⇥', 'tab', 1.5, 'l'),
+    K('Q'), K('W'), K('E'), K('R'), K('T'), K('Y'), K('U'), K('I'), K('O'), K('P'),
+    D('{', '['), D('}', ']'), D('|', '\\')
+  ]},
+  { h: ROW_H, keys: [
+    M('⇪', 'caps lock', 1.75, 'l'),
+    K('A'), K('S'), K('D'), K('F'), K('G'), K('H'), K('J'), K('K'), K('L'),
+    D(':', ';'), D('"', "'"),
+    M('↩', 'return', 1.75, 'r')
+  ]},
+  { h: ROW_H, keys: [
+    M('⇧', 'shift', 2.25, 'l'),
+    K('Z'), K('X'), K('C'), K('V'), K('B'), K('N'), K('M'),
+    D('<', ','), D('>', '.'), D('?', '/'),
+    M('⇧', 'shift', 2.25, 'r')
+  ]},
+  { h: ROW_H, keys: [
+    M(null, 'fn', 1, 'l', 'globe'),
+    M('^', 'control', 1, 'l'),
+    M('⌥', 'option', 1, 'l'),
+    M('⌘', 'command', 1.25, 'l'),
+    { t: 'blank', u: 5 },
+    M('⌘', 'command', 1.25, 'r'),
+    M('⌥', 'option', 1, 'r'),
+    G('◀'),
+    { t: 'arrows', u: 1 },
+    G('▶')
+  ]}
+];
+
+const labelCache = new Map();
+
+function keyLabelTexture(k, wCm, hCm) {
+  const id = JSON.stringify([k.t, k.label, k.top, k.bot, k.word, k.sym, k.icon, k.fn, k.glyph, k.al, wCm.toFixed(2), hCm.toFixed(2)]);
+  if (labelCache.has(id)) return labelCache.get(id);
+
+  const P = 96;
+  const x = ctx2d(wCm * P, hCm * P);
+  const W = x.canvas.width, H = x.canvas.height;
+  x.fillStyle = LEGEND; x.strokeStyle = LEGEND;
+  x.textBaseline = 'middle';
+
+  const padL = W * 0.10 + 3, padR = W - W * 0.10 - 3;
+
+  switch (k.t) {
+    case 'letter':
+      x.textAlign = 'center'; x.font = FONT(H * 0.30, 500);
+      x.fillText(k.label, W / 2, H * 0.53);
+      break;
+
+    case 'dual':
+      x.textAlign = 'center'; x.font = FONT(H * 0.235, 500);
+      x.fillText(k.top, W / 2, H * 0.335);
+      x.fillText(k.bot, W / 2, H * 0.695);
+      break;
+
+    case 'word':
+      x.font = FONT(H * (k.word.length > 4 ? 0.185 : 0.205), 500);
+      if (k.al === 'l') { x.textAlign = 'left'; x.fillText(k.word, padL, H * 0.72); }
+      else if (k.al === 'r') { x.textAlign = 'right'; x.fillText(k.word, padR, H * 0.72); }
+      else { x.textAlign = 'center'; x.fillText(k.word, W / 2, H * 0.52); }
+      break;
+
+    case 'mod': {
+      const left = k.al === 'l';
+      x.textAlign = left ? 'left' : 'right';
+      const ax = left ? padL : padR;
+      if (k.icon) drawFnIcon(x, k.icon, left ? padL + H * 0.11 : padR - H * 0.11, H * 0.36, H * 0.24);
+      else if (k.sym) { x.font = FONT(H * 0.225, 400); x.fillText(k.sym, ax, H * 0.36); }
+      x.font = FONT(H * (k.word.length > 6 ? 0.155 : 0.180), 500);
+      x.fillText(k.word, ax, H * 0.73);
+      break;
+    }
+
+    case 'glyph':
+      x.textAlign = 'center'; x.font = FONT(H * 0.26, 400);
+      x.fillText(k.glyph, W / 2, H * 0.55);
+      break;
+
+    case 'fn':
+      x.textAlign = 'center'; x.font = FONT(H * 0.155, 500);
+      x.fillText(k.fn, W / 2, H * 0.235);
+      drawFnIcon(x, k.icon, W / 2, H * 0.615, H * 0.30);
+      break;
+
+    case 'touchid':
+      // Touch ID is a plain sapphire sensor ring — no printed fingerprint.
+      x.strokeStyle = 'rgba(255,255,255,0.16)';
+      x.lineWidth = Math.max(1, H * 0.018);
+      x.beginPath(); x.arc(W / 2, H * 0.52, H * 0.24, 0, Math.PI * 2); x.stroke();
+      break;
+
+    default:
+      break;
+  }
+
+  const t = texFrom(x.canvas, { aniso: 16 });
+  labelCache.set(id, t);
+  return t;
+}
+
+/* ================================================================== build */
+
+function disposeTree(obj) {
+  obj.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+  });
+}
+
+const shared = {
+  screenTex: null,
+  logoTex: null
+};
+
+function buildMacBook(sp, fin) {
+  const root = new THREE.Group();
+  const mats = {};
+
+  // Anodised aluminium: the oxide layer is partly diffuse, so this is NOT a
+  // pure metal — full metalness reads as a black mirror when lit from above.
+  const alu = c => new THREE.MeshPhysicalMaterial({
+    color: c, metalness: 0.58, roughness: fin.rough,
+    envMapIntensity: 1.15, clearcoat: 0.12, clearcoatRoughness: 0.45,
+    reflectivity: 0.6
+  });
+
+  mats.body = alu(fin.body);
+
+  // Diamond-cut edges: ExtrudeGeometry puts the caps in group 0 and every side
+  // wall + bevel + pocket wall in group 1, so the machined faces get their own,
+  // much shinier material — that is the bright chamfer line on the real machine.
+  mats.edge = new THREE.MeshPhysicalMaterial({
+    color: fin.edge, metalness: 0.90, roughness: 0.20,
+    envMapIntensity: 1.5, clearcoat: 1, clearcoatRoughness: 0.05
+  });
+  const shell = [mats.body, mats.edge];
+  mats.dark = new THREE.MeshStandardMaterial({ color: 0x0c0c0e, metalness: 0.35, roughness: 0.62 });
+  mats.void = new THREE.MeshStandardMaterial({ color: 0x050506, metalness: 0.2,  roughness: 0.85 });
+  // Display bezel + notch: black glass. Kept unlit so they stay a true black
+  // cut-out; the gloss layer above them supplies all the reflection.
+  mats.bezel = new THREE.MeshBasicMaterial({ color: 0x070709, toneMapped: false });
+  mats.key  = new THREE.MeshPhysicalMaterial({
+    // low clearcoat: at grazing angles Fresnel drives it to 1 and the caps
+    // turn white, which is exactly what a matte anodised keycap never does
+    color: 0x0d0d10, metalness: 0.02, roughness: 0.70,
+    clearcoat: 0.06, clearcoatRoughness: 0.6, envMapIntensity: 0.5
+  });
+  // Force Touch surface: glass over anodised aluminium — dielectric, very smooth
+  mats.pad  = new THREE.MeshPhysicalMaterial({
+    color: fin.pad, metalness: 0.35, roughness: 0.15,
+    clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 1.35,
+    reflectivity: 0.6
+  });
+  mats.rubber = new THREE.MeshStandardMaterial({ color: 0x141416, metalness: 0, roughness: 0.92 });
+  // Black trim strip along the rear hinge — the piece the display cables run
+  // under. Matte, so it stays a dark band against the machined rear edge.
+  mats.trim = new THREE.MeshPhysicalMaterial({
+    color: 0x131316, metalness: 0.30, roughness: 0.62,
+    envMapIntensity: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.4
+  });
+
+  const baseTop = sp.baseH;
+
+  /* -------------------------------------------------------- deck layout */
+  const KB_D  = 6 * ROW_H;                                  // 6 full-height rows
+  const padZ  = sp.d / 2 - sp.padFront - sp.padD / 2;
+  const wellW = 14.5 * KU + 0.55;
+  const wellD = KB_D + 0.45;
+  const wellZ = padZ - sp.padD / 2 - sp.padGap - wellD / 2;
+  const kbTop = wellZ - KB_D / 2;                           // back edge of the key field
+  const padHoleW = sp.padW + 0.09, padHoleD = sp.padD + 0.09;
+  const wellTop = baseTop - POCKET;                         // pocket floor height
+
+  /* ---------------------------------------------------------- base body */
+  // Milled unibody: ONE extrusion with two real pockets cut through the deck,
+  // so the keyboard well and the trackpad sit in genuine recesses with walls.
+  const deckShape = roundedRect(sp.w, sp.d, sp.r);
+  deckShape.holes.push(roundedPath(wellW, wellD, 0.34, 0, -wellZ));
+  deckShape.holes.push(roundedPath(padHoleW, padHoleD, 0.58, 0, -padZ));
+
+  const bodyDepth = sp.baseH - sp.bevel * 2;
+  const baseGeo = new THREE.ExtrudeGeometry(deckShape, {
+    depth: bodyDepth, bevelEnabled: true,
+    bevelSize: sp.bevel, bevelThickness: sp.bevel, bevelSegments: 4,
+    curveSegments: 30, steps: 1
+  });
+  baseGeo.rotateX(-Math.PI / 2);
+  baseGeo.translate(0, -bodyDepth / 2, 0);
+  const base = new THREE.Mesh(baseGeo, shell);
+  base.position.y = sp.baseH / 2;
+  base.castShadow = true; base.receiveShadow = true;
+  root.add(base);
+
+  // pocket floors (seen through the cut-outs) + underside caps
+  const wellFloor = new THREE.Mesh(flatUp(wellW + 0.25, wellD + 0.25, 0.4), mats.dark);
+  wellFloor.position.set(0, wellTop, wellZ);
+  wellFloor.receiveShadow = true;
+  root.add(wellFloor);
+
+  const padBack = new THREE.Mesh(flatUp(padHoleW + 0.25, padHoleD + 0.25, 0.6), mats.void);
+  padBack.position.set(0, baseTop - 0.13, padZ);
+  root.add(padBack);
+
+  for (const [w, d, r, z] of [[wellW + 0.25, wellD + 0.25, 0.4, wellZ],
+                              [padHoleW + 0.25, padHoleD + 0.25, 0.6, padZ]]) {
+    const cap = new THREE.Mesh(flatDown(w, d, r), mats.body);
+    cap.position.set(0, sp.bevel + 0.02, z);
+    root.add(cap);
+  }
+
+  /* ------------------------------------------------------- bottom case */
+  // A separate part on the real machine, with a noticeably tighter edge break
+  // than the top. Inset a hair so the top case's own bottom bevel leaves the
+  // hairline seam that runs right round the enclosure.
+  const BC_H = 0.30, BC_Y = -0.010;
+  const bottomCase = new THREE.Mesh(
+    slabGeo(sp.w - 0.03, sp.d - 0.03, BC_H, sp.r - 0.015, 0.075, 4, 30), shell);
+  bottomCase.position.y = BC_Y + BC_H / 2;
+  bottomCase.castShadow = true;
+  root.add(bottomCase);
+
+  // the bottom is domed, not flat — rim flush, ~0.5 mm of swell at the centre
+  const dome = new THREE.Mesh(
+    domedPanel(sp.w - 0.21, sp.d - 0.21, sp.r - 0.10, -0.055),
+    new THREE.MeshPhysicalMaterial({
+      color: fin.body, metalness: 0.58, roughness: fin.rough + 0.04,
+      envMapIntensity: 0.7, side: THREE.DoubleSide
+    }));
+  dome.position.y = BC_Y - 0.004;
+  root.add(dome);
+
+  // four raised rubber feet at the corners — the machine rests on these
+  const footGeo = slabGeo(1.25, 1.25, 0.16, 0.625, 0.055, 4, 36);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const f = new THREE.Mesh(footGeo.clone(), mats.rubber);
+    f.position.set(sx * (sp.w / 2 - 2.2), BC_Y - 0.08, sz * (sp.d / 2 - 1.7));
+    root.add(f);
+  }
+
+  /* -------------------------------------------------------------- keys */
+  const capGeoCache = new Map();
+  const capGeo = (w, d) => {
+    const id = w.toFixed(3) + 'x' + d.toFixed(3);
+    if (!capGeoCache.has(id)) capGeoCache.set(id, slabGeo(w, d, CAP_H, 0.16, 0.035, 3, 12));
+    return capGeoCache.get(id);
+  };
+
+  const addKey = (k, cx, cz, w, d) => {
+    const cap = new THREE.Mesh(capGeo(w, d), mats.key);
+    cap.position.set(cx, wellTop + 0.008 + CAP_H / 2, cz);
+    root.add(cap);
+    if (k.t === 'blank') return;
+    const lab = new THREE.Mesh(planeDeck(w, d), new THREE.MeshStandardMaterial({
+      map: keyLabelTexture(k, w, d), transparent: true, roughness: 0.85, metalness: 0,
+      depthWrite: false, opacity: 0.95
+    }));
+    lab.position.set(cx, wellTop + 0.008 + CAP_H + 0.004, cz);
+    root.add(lab);
+  };
+
+  let rowTop = kbTop;
+  for (const row of ROWS) {
+    const capD = row.h - GAP;
+    const cz = rowTop + row.h / 2;
+    let x = -(14.5 * KU) / 2;
+    for (const k of row.keys) {
+      const kw = k.u * KU - GAP;
+      const cx = x + (k.u * KU) / 2;
+      if (k.t === 'arrows') {
+        const half = (capD - GAP) / 2;
+        addKey(G('▲'), cx, cz - (half + GAP) / 2, kw, half);
+        addKey(G('▼'), cx, cz + (half + GAP) / 2, kw, half);
+      } else {
+        addKey(k, cx, cz, kw, capD);
+      }
+      x += k.u * KU;
+    }
+    rowTop += row.h;
+  }
+
+  /* --------------------------------------------------------- trackpad */
+  // Force Touch glass sits flush in its pocket with a hairline gap all round.
+  const pad = new THREE.Mesh(flatUp(sp.padW, sp.padD, 0.55), mats.pad);
+  pad.position.set(0, baseTop - 0.012, padZ);
+  root.add(pad);
+
+  /* --------------------------------------------------- speaker grilles */
+  const gW = 1.18, gD = wellD - 0.5;
+  const gX = wellW / 2 + (sp.w / 2 - sp.bevel - wellW / 2) / 2;   // centred in the free strip
+  const grilleTex = makeGrilleAlpha(gW, gD);
+  const gMat = new THREE.MeshStandardMaterial({
+    color: 0x08080a, alphaMap: grilleTex, transparent: true,
+    roughness: 0.95, metalness: 0.0, envMapIntensity: 0.25, depthWrite: false
+  });
+  for (const s of [-1, 1]) {
+    const g = new THREE.Mesh(planeDeck(gW, gD), gMat);   // plane => normalised UVs
+    g.position.set(s * gX, baseTop + 0.004, wellZ);
+    root.add(g);
+  }
+
+  /* -------------------------------------------------------------- ports */
+  const portMat = new THREE.MeshStandardMaterial({
+    color: 0x000000, metalness: 0, roughness: 1, envMapIntensity: 0
+  });
+  // machined chamfer around each opening — catches a bright hairline
+  const rimMat = new THREE.MeshStandardMaterial({
+    color: fin.body, metalness: 0.25, roughness: 0.30, envMapIntensity: 1.8
+  });
+  const portY = baseTop * 0.50;
+  const port = (side, z, w, h, r) => {
+    const rim = new THREE.Mesh(flatX(w + 0.09, h + 0.09, r + 0.045, side), rimMat);
+    rim.position.set(side * (sp.w / 2 + 0.004), portY, z);
+    root.add(rim);
+    const m = new THREE.Mesh(flatX(w, h, r, side), portMat);
+    m.position.set(side * (sp.w / 2 + 0.008), portY, z);
+    root.add(m);
+  };
+  // NOTE: flatX builds the rect in (X=width→Z, Y=height) then rotates onto the side face,
+  // so `w` runs along Z and `h` runs along Y. Front-to-back layout, rear first.
+  const sc = sp.w / 31.26;
+  port(-1, -6.6 * sc, 0.92, 0.34, 0.16);   // MagSafe 3
+  port(-1, -4.3 * sc, 0.94, 0.30, 0.14);   // Thunderbolt 4
+  port(-1, -2.1 * sc, 0.94, 0.30, 0.14);   // Thunderbolt 4
+  port(-1,  3.9 * sc, 0.44, 0.44, 0.22);   // 3.5 mm headphone
+  port( 1, -5.9 * sc, 2.70, 0.30, 0.13);   // SDXC
+  port( 1, -3.1 * sc, 1.62, 0.50, 0.16);   // HDMI
+  port( 1, -0.6 * sc, 0.94, 0.30, 0.14);   // Thunderbolt 4
+
+  // Front finger scoop, below the trackpad: a real cylindrical dish milled into
+  // the front lip, not a painted gradient. Chord 0.62 with a 0.10 sagitta gives
+  // R = 0.53 and a 71.4° arc, so the dish edges land exactly on the front face.
+  const SC_R = 0.53, SC_HALF = 0.623;
+  const scoopGeo = new THREE.CylinderGeometry(
+    SC_R, SC_R, sp.w * 0.235, 48, 1, true, Math.PI - SC_HALF, SC_HALF * 2);
+  scoopGeo.rotateZ(Math.PI / 2);
+  const scoop = new THREE.Mesh(scoopGeo, new THREE.MeshPhysicalMaterial({
+    color: fin.edge, metalness: 0.90, roughness: 0.24,
+    envMapIntensity: 1.3, clearcoat: 1, clearcoatRoughness: 0.06,
+    side: THREE.BackSide
+  }));
+  scoop.position.set(0, baseTop - 0.47, sp.d / 2 - 0.10 + SC_R);
+  root.add(scoop);
+
+  /* --------------------------------------------------------------- lid */
+  const pivotZ = sp.d / 2 - sp.lidD;
+  const lid = new THREE.Group();
+  lid.position.set(0, baseTop, pivotZ);
+  root.add(lid);
+
+  const lidBevel = sp.bevel * 0.55;
+  const lidMesh = new THREE.Mesh(slabGeo(sp.w, sp.lidD, sp.lidH, sp.r, lidBevel, 4, 30), shell);
+  lidMesh.position.set(0, sp.lidH / 2, sp.lidD / 2);
+  lidMesh.castShadow = true; lidMesh.receiveShadow = true;
+  lid.add(lidMesh);
+
+  // black glass front panel (the bezel)
+  const glassPanel = new THREE.Mesh(flatDown(sp.w - 0.22, sp.lidD - 0.22, sp.r - 0.11), mats.bezel);
+  glassPanel.position.set(0, -0.008, sp.lidD / 2);
+  lid.add(glassPanel);
+
+  // active display
+  const screenCz = sp.chin + sp.screenH / 2;
+  if (!shared.screenTex) shared.screenTex = makeScreenTexture();
+  mats.screen = new THREE.MeshBasicMaterial({ map: shared.screenTex, toneMapped: false });
+  mats.screenOff = new THREE.MeshPhysicalMaterial({
+    color: 0x08090c, metalness: 0.2, roughness: 0.09, clearcoat: 1, envMapIntensity: 1.4
+  });
+  const screen = new THREE.Mesh(planeLid(sp.screenW, sp.screenH), mats.screen);
+  screen.position.set(0, -0.022, screenCz);
+  lid.add(screen);
+  mats._screenMesh = screen;
+
+  // glossy glass over the whole panel
+  const gloss = new THREE.Mesh(flatDown(sp.w - 0.22, sp.lidD - 0.22, sp.r - 0.11), new THREE.MeshPhysicalMaterial({
+    color: 0xffffff, metalness: 0, roughness: 0.045, transparent: true, opacity: 0.055,
+    envMapIntensity: 1.9, depthWrite: false
+  }));
+  gloss.position.set(0, -0.052, sp.lidD / 2);
+  lid.add(gloss);
+
+  // notch + camera
+  // The notch drops notchH into the image and runs up into the top bezel, but
+  // it must STOP inside the lid — sized at 2× notchH it overshot the 5 mm top
+  // bezel and stuck out past the top edge of the display.
+  const notchTop = sp.topBezel * 0.88;
+  const notchGeoH = sp.notchH + notchTop;
+  const notch = new THREE.Mesh(flatDown(sp.notchW, notchGeoH, 0.16), mats.bezel);
+  notch.position.set(0, -0.034, sp.chin + sp.screenH - sp.notchH / 2 + notchTop / 2);
+  lid.add(notch);
+  const cam = new THREE.Mesh(planeLid(0.52, 0.52), new THREE.MeshBasicMaterial({
+    map: makeCameraTexture(), transparent: true, depthWrite: false, toneMapped: false
+  }));
+  cam.position.set(0, -0.042, sp.chin + sp.screenH - sp.notchH * 0.50);
+  lid.add(cam);
+
+  // etched wordmark on the chin
+  const wmW = sp.w * 0.090, wmH = wmW * 0.19;
+  const wm = new THREE.Mesh(planeLid(wmW, wmH), new THREE.MeshBasicMaterial({
+    map: makeWordmark('MacBook Pro', wmW, wmH, fin.etch),
+    transparent: true, depthWrite: false, toneMapped: false
+  }));
+  wm.position.set(0, -0.030, sp.chin * 0.50);
+  lid.add(wm);
+
+  // Apple logo on the lid back
+  if (!shared.logoTex) shared.logoTex = makeAppleLogoTexture();
+  // Mirror-polished inlay — it reads dark because it reflects the room, exactly
+  // like the real logo does against a light lid.
+  const lh = sp.w * 0.108;
+  const logo = new THREE.Mesh(planeBack(lh * 0.814, lh), new THREE.MeshPhysicalMaterial({
+    map: shared.logoTex, transparent: true, depthWrite: false,
+    color: 0x0c0c0f, metalness: 1.0, roughness: 0.05,
+    envMapIntensity: 0.85, clearcoat: 1, clearcoatRoughness: 0.02
+  }));
+  logo.position.set(0, sp.lidH + 0.004, sp.lidD / 2);
+  lid.add(logo);
+
+  // screen light spill
+  const spill = new THREE.PointLight(0x9dc4ff, 55, 34, 2);
+  spill.position.set(0, -3.2, screenCz);
+  lid.add(spill);
+  mats._spill = spill;
+
+  /* --------------------------------------------- rear hinge assembly */
+  // Closed, the display stops short of the rear edge and that ledge is filled
+  // by the hinge assembly — a dark trim strip capped at each end by a
+  // body-coloured hinge cover, with the exhaust vents at both ends of it.
+  // Without this the ledge is simply open and the rear reads as two stacked
+  // slabs. It belongs to the BASE, so the display swings down into it as the
+  // lid opens, exactly as on the real machine.
+  const ledgeD = pivotZ + sp.d / 2;                 // 0.72 cm of exposed ledge
+  const ledgeZ = (pivotZ - sp.d / 2) / 2 + 0.03;    // 0.03 recess for a shadow line
+  const hingeW = sp.w - 2 * sp.r;                   // matches the lid's rear edge
+  const capW = 3.2;
+  const hingeY = baseTop + sp.lidH / 2;
+
+  const trim = new THREE.Mesh(
+    slabGeo(hingeW - capW * 2, ledgeD, sp.lidH, 0.16, 0.05, 3, 16), mats.trim);
+  trim.position.set(0, hingeY, ledgeZ);
+  trim.castShadow = true;
+  root.add(trim);
+
+  for (const s of [-1, 1]) {
+    const cover = new THREE.Mesh(
+      slabGeo(capW, ledgeD, sp.lidH, 0.20, 0.06, 3, 16), shell);
+    cover.position.set(s * (hingeW - capW) / 2, hingeY, ledgeZ);
+    cover.castShadow = true;
+    root.add(cover);
+  }
+
+  // exhaust vents — one at each end of the hinge, venting the two fans
+  const evW = 5.4, evH = 0.19;
+  const evTex = makeGrilleAlpha(evW, evH);
+  const evMat = new THREE.MeshStandardMaterial({
+    color: 0x000000, alphaMap: evTex, transparent: true,
+    roughness: 1, metalness: 0, envMapIntensity: 0, depthWrite: false
+  });
+  for (const s of [-1, 1]) {
+    const v = new THREE.Mesh(new THREE.PlaneGeometry(evW, evH).rotateY(Math.PI), evMat);
+    v.position.set(s * 7.7, hingeY, ledgeZ - ledgeD / 2 - 0.004);
+    root.add(v);
+  }
+
+  root.userData = { mats, lid, sp };
+  return root;
+}
+
+/* =================================================================== scene */
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+
+// near is kept well away from 0 — the lid stacks six coplanar layers 0.006 cm
+// apart, and a tight near plane is what stops them speckling against each other.
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 3, 400);
+camera.position.set(33, 25, 42);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.target.set(0, 5.2, -1);
+controls.minDistance = 22;
+controls.maxDistance = 150;
+controls.minPolarAngle = 0.10;
+controls.maxPolarAngle = Math.PI * 0.497;
+controls.autoRotateSpeed = 0.85;
+
+// studio environment for the anodised aluminium
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envSrc = makeStudioEnv();
+scene.environment = pmrem.fromEquirectangular(envSrc).texture;
+envSrc.dispose();
+if ('environmentIntensity' in scene) scene.environmentIntensity = 1.0;
+
+const key = new THREE.DirectionalLight(0xffffff, 3.0);
+key.position.set(16, 30, 18);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 140;
+key.shadow.camera.left = -32; key.shadow.camera.right = 32;
+key.shadow.camera.top = 32;   key.shadow.camera.bottom = -32;
+key.shadow.bias = -0.0006;
+key.shadow.normalBias = 0.02;
+key.shadow.radius = 3;
+scene.add(key);
+
+// low grazing fills so the machined side faces and the ports read
+const fill = new THREE.DirectionalLight(0xbfd4ff, 0.95);
+fill.position.set(-30, 3.5, 8);
+scene.add(fill);
+
+const side = new THREE.DirectionalLight(0xffffff, 0.55);
+side.position.set(30, 3.0, -3);
+scene.add(side);
+
+// lifts the lid's back, which faces away from every softbox when open
+const rim = new THREE.DirectionalLight(0xffffff, 2.0);
+rim.position.set(-6, 9, -26);
+scene.add(rim);
+
+// the front lip, the finger scoop and the feet all face +Z, away from the key
+const front = new THREE.DirectionalLight(0xffffff, 0.42);
+front.position.set(6, 6, 30);
+scene.add(front);
+
+// shadow catcher
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2),
+  new THREE.ShadowMaterial({ opacity: 0.42 })
+);
+floor.position.y = -0.172;          // the machine rests on its feet, not its case
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* ---------------------------------------------------------------- state */
+
+const state = { size: '14', finish: 'black', angle: 108, display: true, spin: false };
+let mac = null;
+
+/** Dolly the camera so the whole machine fits, whatever the window aspect is. */
+function frameCamera() {
+  const sp = SPECS[state.size];
+  const r = 0.5 * Math.hypot(sp.w, sp.lidD + sp.baseH, sp.d);
+  const vF = THREE.MathUtils.degToRad(camera.fov);
+  const hF = 2 * Math.atan(Math.tan(vF / 2) * camera.aspect);
+  const dist = (r / Math.sin(Math.min(vF, hF) / 2)) * 0.86;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camera.position.copy(controls.target).addScaledVector(dir, dist);
+  controls.maxDistance = dist * 2.4;
+  controls.update();
+}
+
+function rebuild() {
+  if (mac) { scene.remove(mac); disposeTree(mac); }
+  mac = buildMacBook(SPECS[state.size], FINISHES[state.finish]);
+  scene.add(mac);
+  applyDisplay();
+  applyAngle();
+  updateSpecs();
+  if (fitOnResize) frameCamera();
+}
+
+function applyAngle() {
+  if (!mac) return;
+  const a = THREE.MathUtils.degToRad(state.angle);
+  mac.userData.lid.rotation.x = -a;
+  const sp = mac.userData.mats._spill;
+  if (sp) sp.intensity = state.display ? 55 * Math.min(1, state.angle / 30) : 0;
+}
+
+function applyDisplay() {
+  if (!mac) return;
+  const m = mac.userData.mats;
+  m._screenMesh.material = state.display ? m.screen : m.screenOff;
+  applyAngle();
+}
+
+function updateSpecs() {
+  const sp = SPECS[state.size];
+  document.getElementById('modelSub').textContent = `${sp.name} · ${FINISHES[state.finish].label}`;
+  document.getElementById('specs').innerHTML =
+    `Enclosure <span>${sp.w} × ${sp.d} × ${sp.h} cm</span><br>` +
+    `Display <span>${sp.diag} · ${sp.px} · ${sp.ppi} ppi</span><br>` +
+    `Active area <span>${sp.screenW} × ${sp.screenH} cm</span><br>` +
+    `Weight <span>${sp.weight}</span>`;
+}
+
+/* -------------------------------------------------------------------- UI */
+
+function seg(elId, onPick) {
+  const el = document.getElementById(elId);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...el.children].forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+    onPick(b.dataset.v);
+  });
+}
+seg('segSize',   v => { state.size = v; rebuild(); });
+seg('segFinish', v => { state.finish = v; rebuild(); });
+
+const angleEl = document.getElementById('angle');
+const angleVal = document.getElementById('angleVal');
+angleEl.addEventListener('input', () => {
+  state.angle = +angleEl.value;
+  angleVal.textContent = state.angle + '°';
+  applyAngle();
+});
+
+const btnDisplay = document.getElementById('btnDisplay');
+btnDisplay.addEventListener('click', () => {
+  state.display = !state.display;
+  btnDisplay.setAttribute('aria-pressed', String(state.display));
+  applyDisplay();
+});
+
+const btnSpin = document.getElementById('btnSpin');
+btnSpin.addEventListener('click', () => {
+  state.spin = !state.spin;
+  btnSpin.setAttribute('aria-pressed', String(state.spin));
+  controls.autoRotate = state.spin;
+});
+
+// animated open / close
+let anim = null;
+const btnPose = document.getElementById('btnPose');
+btnPose.addEventListener('click', () => {
+  const to = state.angle > 5 ? 0 : 108;
+  anim = { from: state.angle, to, t: 0, dur: 0.95 };
+  btnPose.textContent = to === 0 ? 'Open' : 'Close';
+});
+
+/* ------------------------------------------------------------------ loop */
+
+const clock = new THREE.Clock();
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.1);
+
+  if (anim) {
+    anim.t += dt / anim.dur;
+    const p = Math.min(1, anim.t);
+    const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // easeInOutCubic
+    state.angle = anim.from + (anim.to - anim.from) * e;
+    angleEl.value = Math.round(state.angle);
+    angleVal.textContent = Math.round(state.angle) + '°';
+    applyAngle();
+    if (p >= 1) anim = null;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+let fitOnResize = true;
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  if (fitOnResize) frameCamera();
+});
+// once the user drives the camera, stop re-framing under them
+controls.addEventListener('start', () => { fitOnResize = false; });
+
+rebuild();
+tick();
+
+// handy for tweaking from the console
+window.mbp = {
+  THREE, scene, camera, controls, renderer, state,
+  rebuild, frameCamera, buildMacBook, SPECS, FINISHES
+};
+</script>
