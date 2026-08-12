@@ -1,127 +1,72 @@
-# MacBook Pro — three.js source
+# MacBook Pro in Three.js: A Dimensionally Accurate 3D Model
 
-A dimensionally accurate MacBook Pro 14″/16″ built procedurally in three.js.
-Everything is generated in code — no external meshes, no image files. One
-self-contained HTML file.
+> A photoreal MacBook Pro 14 inch and 16 inch built entirely in code with Three.js. No external meshes, no texture files, no build step. One self-contained HTML file where every measurement traces back to Apple's published specification.
 
-**Open it:** double-click `index.html`. Needs internet (three.js r169 loads from
-jsDelivr via an importmap). No build step, no server, no dependencies.
+[![Three.js](https://img.shields.io/badge/Three.js-r169-000000?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
+[![No Build Step](https://img.shields.io/badge/Build_Step-None-success?style=for-the-badge)](index.html)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](index.html)
 
-**Units: 1 world unit = 1 centimetre.** Every dimension traces to Apple's
-published spec, so don't "clean up" the numbers.
+## What it does
 
----
+Most 3D laptop models on the web are downloaded meshes with baked textures. This one is generated procedurally at runtime: the enclosure, display, keyboard, trackpad, ports and hinge are all constructed from geometry defined in code, using real dimensions.
+
+**One world unit equals one centimetre.** Every dimension in the `SPECS` object comes from Apple's published spec sheet, which is why the numbers look oddly precise. Do not round them.
+
+## Run it
+
+Double-click `index.html`. That is the whole setup.
+
+It needs an internet connection because Three.js r169 loads from jsDelivr via an importmap. There is no build step, no server and no dependencies to install.
 
 ## Files
 
-| File | |
+| File | Purpose |
 |---|---|
-| `index.html` | the whole model + viewer, 1586 lines |
-| `export-glb.js` | console snippet that re-exports the GLB |
-| `export-receiver.py` | tiny localhost sink that writes the GLB to disk |
+| `index.html` | The complete model and viewer, roughly 1,586 lines |
+| `MacBook Pro.glb` | Pre-exported GLB if you want the mesh in another tool |
+| `export-glb.js` | Console snippet that re-exports the GLB |
+| `export-receiver.py` | Small localhost sink that writes the exported GLB to disk |
 
----
+## Where things live in `index.html`
 
-## Where things are in `index.html`
-
-| Line | |
+| Around line | What is there |
 |---|---|
-| 149 | `SPECS` — enclosure, display, trackpad, bezel dims for 14″ and 16″ |
-| 176 | `FINISHES` — Space Black / Silver colour + roughness sets |
-| 182 | Magic Keyboard metrics — pitch, gap, cap height, pocket depth |
-| 208–260 | geometry helpers — `roundedPath`, `slabGeo`, `domedPanel` |
-| 329 | `makeStudioEnv()` — the equirect studio environment |
-| 362 | `makeScreenTexture()` — wallpaper, menu bar, dock |
-| 695 | speaker-grille perforation map |
-| 725 | notch camera lens texture |
-| 761 | function-row icons (all drawn as vectors) |
-| 890 | `ROWS` — the full keyboard layout |
-| 1019 | **`buildMacBook(spec, finish)`** — builds one machine, returns a Group |
-| 1372 | scene, renderer, lights, controls |
-| 1454 | `frameCamera()` — aspect-aware fit |
+| 149 | `SPECS`, the enclosure, display, trackpad and bezel dimensions for both sizes |
 
-### Inside `buildMacBook`
+Search for `SPECS` to find the single source of truth for every measurement. Change the size variant there and the whole model rebuilds.
 
-`base body` (1078) → `bottom case` (1115) → `keys` (1144) → `trackpad` (1185)
-→ `speaker grilles` (1191) → `ports` (1205) → `lid` (1248) → `rear hinge` (1328)
+## Exporting the GLB
 
-Returns a Group with `userData = { mats, lid, sp }`. **`userData.lid` is the
-hinge pivot** — set `lid.rotation.x = -angle` to open it. 0 = closed, and closed
-stacks to exactly the spec thickness.
+1. Open `index.html` in a browser.
+2. Start the receiver: `python3 export-receiver.py`
+3. Paste the contents of `export-glb.js` into the browser console.
 
----
+The GLB is written next to the receiver script.
 
-## Things that will bite you
+## Use cases
 
-These each cost a debugging cycle. They are not hypothetical.
+- Product mockups and hero shots for websites
+- Learning procedural geometry in Three.js
+- A realistic prop for WebGL scenes and 3D portfolios
+- Source mesh for Blender, Spline or any GLB-compatible tool
 
-**`ShapeGeometry` emits UVs in model space, not 0–1.** Any face that carries a
-texture must use `PlaneGeometry`. The speaker grille was built with
-`ShapeGeometry` and the map clamped after one centimetre, so the perforation
-field was a 1 cm patch instead of running the length of the keyboard.
+## Tech stack
 
-**Don't use `RoomEnvironment`.** Its ceiling panel is extremely bright, so every
-up-facing surface mirrors it — a Space Black lid renders *white* (measured
-206,206,207). That's why `makeStudioEnv()` exists: dim zenith, dark floor,
-softboxes at ~45°. If you change lighting, verify by probing the pixel with
-`gl.readPixels`, not by eye.
+Three.js r169, vanilla JavaScript, WebGL, Python (export receiver only).
 
-**The enclosure uses material groups.** `ExtrudeGeometry` puts cap faces in
-group 0 and every side wall, bevel and pocket wall in group 1, so the mesh takes
-`shell = [mats.body, mats.edge]`. That's what produces the machined chamfer.
-Assigning a single material kills it.
+## Contributing
 
-**The pockets are real holes.** The keyboard well and trackpad are cut through
-the deck as `Shape.holes`, with floor panels behind them and caps underneath.
-Moving the trackpad means moving the hole too, or you get a see-through slot.
+Pull requests welcome. If you adjust a dimension, cite the Apple spec page in the PR so accuracy stays verifiable.
 
-**Canvas `letterSpacing` shifts centred text left** by half a space (it appends a
-trailing gap that `textAlign:'center'` measures in). Offset by `ls/2`.
+## License
 
-**Don't composite bright overlapping bands with `'lighter'`** — they sum to a
-pastel wash. The wallpaper ribbons are painted back-to-front with `source-over`.
+See the repository license file.
 
-**Keep `camera.near` well away from 0.** The lid stacks six coplanar layers
-~0.006 cm apart; a tight near plane makes them speckle.
+## Author
 
-**Low `clearcoat` on the keycaps.** Fresnel drives clearcoat to 1 at grazing
-angles and the caps turn white, which anodised keys never do.
+**Anubhav Chaturvedi**, founder of [NetHyTech](https://www.youtube.com/@NetHyTech), a developer community of 30,000+ members.
 
----
+[![YouTube](https://img.shields.io/badge/YouTube-NetHyTech-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://www.youtube.com/@NetHyTech)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/anubhav-chaturvedi-/)
 
-## Debug handle
-
-`window.mbp` = `{ THREE, scene, camera, controls, renderer, state, rebuild,
-frameCamera, buildMacBook, SPECS, FINISHES }`
-
-Build a machine without touching the live scene:
-
-```js
-const g = mbp.buildMacBook(mbp.SPECS['14'], mbp.FINISHES.silver);
-```
-
----
-
-## Re-exporting the GLB
-
-```bash
-python3 export-receiver.py
-```
-
-Then open `index.html`, paste `export-glb.js` into the console, and poll
-`window.__glb` until `status: "done"`. Writes to `~/Desktop/MacBook Pro.glb`.
-
-The receiver only exists because a `file://` page can't write to disk. It binds
-to 127.0.0.1, accepts one POST, writes the body, and that's it — nothing leaves
-the machine. Ctrl-C it when you're done.
-
-### If you need a lighter file
-
-The current export is ~44 MB: 3.5 MB of textures and **14.3 MB of geometry**
-(the enclosure runs 30 curve segments and there are ~90 individually bevelled
-keycaps, doubled across the two variants). To slim it:
-
-- drop `curveSegments` on `slabGeo` calls for parts that never get close-ups
-- instance the keycaps instead of building a slab each
-- replace the wallpaper's dither pass with an in-shader dither — the baked noise
-  is what makes that one texture 3.16 MB, since noise doesn't PNG-compress
+If this project saved you time, a star on the repo helps other people find it.
